@@ -167,15 +167,26 @@ async function drawPostDetail(postId) {
   }
   // 5. 이벤트 리스너 등록하기
   updateEl.addEventListener('click', async e => {
-    drawEditPostForm(postId)
+    const { data: { id } } = await api.get('/me')
+    if(id === user.id){
+      drawEditPostForm(postId)
+    }else{
+      alert('다른 사람이 쓴 글은 수정할 수 없습니다.')
+    }
   })
   backEl.addEventListener('click', e => {
     e.preventDefault() // 새 글이 써지는 것을 방지하기 위함 - 폼의 submit 이벤트가 일어나지 않게 함
     drawPostList()
   })
   deleteEl.addEventListener("click", async e => {
-    api.delete('/posts/' + postId);
-    drawPostList()
+    const { data: { id } } = await api.get('/me')
+    if (id === user.id) {
+      api.delete("/posts/" + postId);
+      drawPostList();
+    } else {
+      alert('다른 사람이 쓴 글은 삭제할 수 없습니다.')
+    }
+
   });
   backEl.addEventListener('click', e => {
     drawPostList()
@@ -236,7 +247,6 @@ async function drawEditPostForm(postId) {
       _embed: 'comments'
     }
   })
-
   // 4. 내용 채우기
   titleEl.value = title
   // 왜 textContent가 아니라 value일까? 찾아봐야겠다
