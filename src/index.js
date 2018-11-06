@@ -111,29 +111,43 @@ async function drawPostList() {
 async function drawPostDetail(postId) {
   // 1. 템플릿 복사
   const frag = document.importNode(templates.postDetail, true)
+
   // 2. 요소 선택
+  // 2-1. 상세 페이지 관련
   const titleEl = frag.querySelector('.title')
   const authorEl = frag.querySelector('.author')
   const bodyEl = frag.querySelector('.body')
-  const backEl = frag.querySelector('.back')
-  const commentListEl = frag.querySelector('.comment-list')
+  // 2-2. 버튼 관련
+  const deleteEl = frag.querySelector('.delete')
+  const backEl = frag.querySelector(".back")
+  const updateEl = frag.querySelector('.update')
+  // 2-3. 코멘트 관련
   const commentFormEl = frag.querySelector('.comment-form')
+  const commentListEl = frag.querySelector(".comment-list")
   // 3. 필요한 데이터 불러오기
   const {data: {title, body, user, comments}} = await api.get('/posts/' + postId, {
     params: {
       _expand: 'user',
       _embed: 'comments'
     }
+    // +?_expand=user&_embed=comments 라고 써도 됨.
   })
-  const paramsForUser = new URLSearchParams()
+  const params = new URLSearchParams()
   comments.forEach(c => {
-    paramsForUser.append("id", c.userId);
+    params.append("id", c.userId);
   })
-  const { data: userList } = await api.get("/users/", { paramsForUser });
+  const { data: userList } = await api.get("/users/", { params });
+  // 아래와 같이 해도 되지만, 댓글을 이미 한번 불러왔는데 또 불러오는 것은 낭비이므로 위와 같은 코드가 더 좋다.
+    // const { data: userList } = await api.get("/comments/" + postId, {
+    //   params: {
+    //     _expand: 'user'
+    //   }
+    // })
   // 4. 내용 채우기
   titleEl.textContent = title
   bodyEl.textContent = body
   authorEl.textContent = user.username
+
   for(const commentItem of comments){
     // 1. 템플릿 복사
     const frag = document.importNode(templates.commentItem, true)
@@ -141,16 +155,28 @@ async function drawPostDetail(postId) {
     const authorEl = frag.querySelector('.author')
     const bodyEl = frag.querySelector('.body')
     const deleteEl = frag.querySelector('.delete')
-    // 3. 필요한 데이터 불러오기
+    // 3. 필요한 데이터 불러오기 - 필요 없음
     // 4. 내용 채우기
     bodyEl.textContent = commentItem.body
     const user = userList.find(item => item.id === commentItem.userId)
     authorEl.textContent = user.username
+    // authorEl.textContent = userList.user.username;
     // 5. 이벤트 리스너 등록하기
     // 6. 템플릿을 문서에 삽입
     commentListEl.appendChild(frag)
   }
   // 5. 이벤트 리스너 등록하기
+  updateEl.addEventListener('click', async e => {
+    drawEditPostForm(postId)
+  })
+  backEl.addEventListener('click', e => {
+    e.preventDefault() // 새 글이 써지는 것을 방지하기 위함 - 폼의 submit 이벤트가 일어나지 않게 함
+    drawPostList()
+  })
+  deleteEl.addEventListener("click", async e => {
+    api.delete('/posts/' + postId);
+    drawPostList()
+  });
   backEl.addEventListener('click', e => {
     drawPostList()
   })
@@ -177,7 +203,7 @@ async function drawNewPostForm() {
   // 4. 내용 채우기
   // 5. 이벤트 리스너 등록하기
   formEl.addEventListener('submit', async e => {
-    e.preventDefault()
+    e.preventDefault() // 브라우저 내장 전송 기능이 동작하는 것을 방지
     const title = e.target.elements.title.value
     const body = e.target.elements.body.value
     await api.post('/posts', {
@@ -187,7 +213,7 @@ async function drawNewPostForm() {
     drawPostList()
   })
   backEl.addEventListener('click', e => {
-    e.preventDefault() // 새 글이 써지는 것을 방지하기 위함
+    e.preventDefault() // 새 글이 써지는 것을 방지하기 위함 - 폼의 submit 이벤트가 일어나지 않게 함
     drawPostList()
   })
   // 6. 템플릿을 문서에 삽입
@@ -197,11 +223,44 @@ async function drawNewPostForm() {
 
 async function drawEditPostForm(postId) {
   // 1. 템플릿 복사
+  const frag = document.importNode(templates.postForm, true);
   // 2. 요소 선택
+  const formEl = frag.querySelector('.post-form')
+  const backEl = frag.querySelector('.back')
+  const titleEl = frag.querySelector('.title')
+  const bodyEl = frag.querySelector('.body')
   // 3. 필요한 데이터 불러오기
+  const { data: { title, body } } = await api.get('/posts/' + postId, {
+    params: {
+      _expand: 'user',
+      _embed: 'comments'
+    }
+  })
+
   // 4. 내용 채우기
+  titleEl.value = title
+  // 왜 textContent가 아니라 value일까? 찾아봐야겠다
+  bodyEl.value = body
+
   // 5. 이벤트 리스너 등록하기
+  formEl.addEventListener('submit', async e => {
+    e.preventDefault() // 브라우저 내장 전송 기능이 동작하는 것을 방지
+    const title = e.target.elements.title.value
+    const body = e.target.elements.body.value
+    await api.patch('/posts/' + postId, {
+      title,
+      body
+    })
+    drawPostList()
+  })
+  backEl.addEventListener('click', e => {
+    e.preventDefault()
+    drawPostList()
+  })
+
   // 6. 템플릿을 문서에 삽입
+  rootEl.textContent = "";
+  rootEl.appendChild(frag);
 }
 
 // 페이지 로드 시 그릴 화면 설정
