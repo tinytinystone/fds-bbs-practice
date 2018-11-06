@@ -142,11 +142,11 @@ async function drawPostDetail(postId) {
   })
   const { data: userList } = await api.get("/users/", { params });
   // 아래와 같이 해도 되지만, 댓글을 이미 한번 불러왔는데 또 불러오는 것은 낭비이므로 위와 같은 코드가 더 좋다.
-    // const { data: userList } = await api.get("/comments/" + postId, {
-    //   params: {
-    //     _expand: 'user'
-    //   }
-    // })
+  // const { data: userList } = await api.get("/comments/" + postId, {
+  //   params: {
+  //     _expand: 'user'
+  //   }
+  // })
   // 4. 내용 채우기
   titleEl.textContent = title
   bodyEl.textContent = body
@@ -205,9 +205,10 @@ async function drawPostDetail(postId) {
   commentFormEl.addEventListener('submit', async e => {
     e.preventDefault()
     const body = e.target.elements.body.value
-    await api.post('/posts/' + postId + '/comments', {
-      body
-    })
+    await api.post("/comments/?postId=" + postId, {
+      body,
+      postId
+    });
     drawPostDetail(postId)
   })
   // 6. 템플릿을 문서에 삽입
