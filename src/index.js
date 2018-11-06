@@ -66,10 +66,26 @@ async function drawLoginForm() {
 async function drawPostList() {
   // 1. 템플릿 복사
   const frag = document.importNode(templates.postList, true)
-
   // 2. 요소 선택
+  const listEl = frag.querySelector('.post-list')
   // 3. 필요한 데이터 불러오기
+  const {data: postList} = await api.get('/posts?_expand=user')
   // 4. 내용 채우기
+  for(const postItem of postList){
+    const frag = document.importNode(templates.postItem, true)
+    const idEl = frag.querySelector('.id')
+    const titleEl = frag.querySelector('.title')
+    const authorEl = frag.querySelector('.author')
+
+    idEl.textContent = postItem.id
+    titleEl.textContent = postItem.title
+    authorEl.textContent = postItem.user.username
+
+    titleEl.addEventListener('click', e => {
+      drawPostDetail(postItem.id)
+    })
+    listEl.appendChild(frag)
+  }
   // 5. 이벤트 리스너 등록하기
 
   // 6. 템플릿을 문서에 삽입
@@ -79,11 +95,29 @@ async function drawPostList() {
 
 async function drawPostDetail(postId) {
   // 1. 템플릿 복사
+  const frag = document.importNode(templates.postDetail, true)
   // 2. 요소 선택
+  const titleEl = frag.querySelector('.title')
+  const authorEl = frag.querySelector('.author')
+  const bodyEl = frag.querySelector('.body')
+  const backEl = frag.querySelector('.back')
   // 3. 필요한 데이터 불러오기
+  const {data: {title, body, user}} = await api.get('/posts/' + postId, {
+    params: {
+      _expand: 'user'
+    }
+  })
   // 4. 내용 채우기
+  titleEl.textContent = title
+  bodyEl.textContent = body
+  authorEl.textContent = user.username
   // 5. 이벤트 리스너 등록하기
+  backEl.addEventListener('click', e => {
+    drawPostList()
+  })
   // 6. 템플릿을 문서에 삽입
+  rootEl.textContent = ''
+  rootEl.appendChild(frag)
 }
 
 async function drawNewPostForm() {
