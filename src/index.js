@@ -69,6 +69,7 @@ async function drawPostList() {
   // 2. 요소 선택
   const listEl = frag.querySelector('.post-list')
   const createBtnEl = frag.querySelector(".create");
+  const logoutEl = frag.querySelector('.logout')
 
   // 3. 필요한 데이터 불러오기
   const { data: postList } = await api.get('/posts?_expand=user')
@@ -102,7 +103,10 @@ async function drawPostList() {
   createBtnEl.addEventListener('click', e => {
     drawNewPostForm();
   })
-
+  logoutEl.addEventListener('click', e => {
+    localStorage.removeItem("token");
+    drawLoginForm()
+  })
   // 6. 템플릿을 문서에 삽입
   rootEl.textContent = ''
   rootEl.appendChild(frag)
@@ -162,6 +166,14 @@ async function drawPostDetail(postId) {
     authorEl.textContent = user.username
     // authorEl.textContent = userList.user.username;
     // 5. 이벤트 리스너 등록하기
+    const { data: { id } } = await api.get("/me");
+    if (id === user.id) {
+      deleteEl.classList.remove('hidden')
+      deleteEl.addEventListener('click', async e => {
+        await api.delete("/comments/" + commentItem.id);
+        drawPostDetail(postId)
+      })
+    }
     // 6. 템플릿을 문서에 삽입
     commentListEl.appendChild(frag)
   }
@@ -181,12 +193,11 @@ async function drawPostDetail(postId) {
   deleteEl.addEventListener("click", async e => {
     const { data: { id } } = await api.get('/me')
     if (id === user.id) {
-      api.delete("/posts/" + postId);
+      await api.delete("/posts/" + postId);
       drawPostList();
     } else {
       alert('다른 사람이 쓴 글은 삭제할 수 없습니다.')
     }
-
   });
   backEl.addEventListener('click', e => {
     drawPostList()
